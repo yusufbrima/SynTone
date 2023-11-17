@@ -13,7 +13,7 @@ from utils import train_with_validation
 from Losses.vae import BetaVAELoss
 from tqdm import tqdm
 
-file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset.npz")
+file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz")
 
 # set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -41,60 +41,40 @@ if __name__ == "__main__":
 
     latent_dim = 16
     
-    num_models = 100
+    # Get input shape 
+    x_batch, y_batch = next(iter(train_loader))
+    input_shape = x_batch.shape
     train_losses_over_models = []
     val_losses_over_models = []
     for i in tqdm(range(num_models)):
-      vae = VAE(latent_dim).to(device)
-      loss_fn = BetaVAELoss(beta = 1)
-      optimizer = optim.Adam(vae.parameters(), lr=0.0001)
-      train_losses, val_losses = train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs=50, device=device)
+      vae = VAE(latent_dim, input_shape).to(device)
+      loss_fn = BetaVAELoss(beta = 4)
+      optimizer = optim.Adam(vae.parameters(), lr=0.001, betas = (0.9, 0.999))
+      train_losses, val_losses = train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs=20, device=device)
       train_losses_over_models.append(train_losses)
       val_losses_over_models.append(val_losses)
 
 
     # Plot training and validation accuracy over epochs
     # Plot results
-    plt.figure(1)
-    plt.xlabel('Epoch', fontsize=14)
-    plt.ylabel('Loss',  fontsize=14)
-    for i in range(num_models):
-      plt.plot(train_losses_over_models[i], alpha=0.5)
-    
-    plt.title(f'Train Loss for {num_models} Randomly Initialized Networks', fontsize=14)
-    plt.savefig(f'./Figures/train_vae_loss_{num_models}.png')
-    plt.close()
-
-    plt.figure(2)
-    plt.xlabel('Epoch', fontsize=14)
-    plt.ylabel('Loss',  fontsize=14)
-    for i in range(num_models):
-      plt.plot(val_losses_over_models[i], alpha=0.5)
-    
-    plt.title(f'Validation Loss for {num_models} Randomly Initialized Networks', fontsize=14)
-    plt.savefig(f'./Figures/val_vae_loss_{num_models}.png')
-    plt.close()
-
-
-
-
-    # vae = VAE(latent_dim).to(device)
-
-    # loss_fn = BetaVAELoss(beta = 1)
-
-    # # Set up an optimizer
-    # optimizer = optim.Adam(vae.parameters(), lr=0.0001)
-    # # optimizer = optim.Adam(vae.parameters(), lr=1e-3, weight_decay = 1e-5)
-    # # Training loop
-    # num_epochs = 50
-    # train_losses, val_losses = train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs, device)
-    # print("Training finished.")
-    # # Plot results
+    # plt.figure(1)
     # plt.xlabel('Epoch', fontsize=14)
     # plt.ylabel('Loss',  fontsize=14)
-    # plt.plot(train_losses, alpha=0.5)
-    # plt.plot(val_losses, alpha=0.5)
+    # for i in range(num_models):
+    #   plt.plot(train_losses_over_models[i], alpha=0.5)
+    
+    # plt.title(f'Train Loss for {num_models} Randomly Initialized Networks', fontsize=14)
     # plt.savefig(f'./Figures/train_vae_loss_{num_models}.png')
+    # plt.close()
+
+    # plt.figure(2)
+    # plt.xlabel('Epoch', fontsize=14)
+    # plt.ylabel('Loss',  fontsize=14)
+    # for i in range(num_models):
+    #   plt.plot(val_losses_over_models[i], alpha=0.5)
+    
+    # plt.title(f'Validation Loss for {num_models} Randomly Initialized Networks', fontsize=14)
+    # plt.savefig(f'./Figures/val_vae_loss_{num_models}.png')
     # plt.close()
 
 

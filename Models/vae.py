@@ -5,32 +5,37 @@ import torch.nn.functional as F
 class VAE(nn.Module):
     """Variational Autoencoder model."""
     
-    def __init__(self, latent_dim):
+    def __init__(self, latent_dim, input_shape):
         """
         Args:
             latent_dim (int): Dimensionality of latent space.
+            input_shape (tuple): Shape of the input tensor (num_channels, sequence_length)
         """
         super().__init__()
-        
+
+        _, num_channels, sequence_length = input_shape
+
         # Encoder
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=5, padding=2)
+        self.conv1 = nn.Conv1d(num_channels, 16, kernel_size=5, padding=2)
         self.pool = nn.MaxPool1d(2)
         self.conv2 = nn.Conv1d(16, 32, kernel_size=3, padding=1) 
+
+        # Compute the size for fully connected layers dynamically
+        fc_size = 32 * (sequence_length // 4)
         self.flatten = nn.Flatten()
-        self.fc_enc1 = nn.Linear(32 * 11025, 64)
+        self.fc_enc1 = nn.Linear(fc_size, 64)
         self.fc_enc2_mean = nn.Linear(64, latent_dim)
         self.fc_enc2_logvar = nn.Linear(64, latent_dim)
         
         # Decoder
         self.fc_dec1 = nn.Linear(latent_dim, 64)
-        self.fc_dec2 = nn.Linear(64, 1 * 44100)
-        self.unflatten = nn.Unflatten(1, (1, 44100))
+        self.fc_dec2 = nn.Linear(64, 1 * sequence_length)
+        self.unflatten = nn.Unflatten(1, (1, sequence_length))
         self.deconv1 = nn.ConvTranspose1d(1, 16, kernel_size=5, padding=2)
-        self.deconv2 = nn.ConvTranspose1d(16, 1, kernel_size=3, padding=1)
+        self.deconv2 = nn.ConvTranspose1d(16, num_channels, kernel_size=3, padding=1)
         
         # Non-linearity
         self.neg_factor = 0.01
-        
         
     def encode(self, x):
         """
@@ -78,13 +83,14 @@ class VAE(nn.Module):
     
     def forward(self, x):
         """
-        Forward pass of model.
+        Forward pass of the model.
         """
         z_mean, z_logvar = self.encode(x)
         z = self.reparameterize(z_mean, z_logvar) 
         x_hat = self.decode(z)
         
         return x_hat, z_mean, z_logvar
+
 
 
 

@@ -13,7 +13,7 @@ from datasets import WaveformDataset
 from utils import train_model
 from tqdm import tqdm
 
-file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset.npz")
+file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz")
 
 # set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -36,15 +36,18 @@ if __name__ == "__main__":
     # Create dataloaders
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64)
+
+
+
     # Train n models
-    num_models = 100
+    num_models = 1
     train_accs_over_models = []
     val_accs_over_models = []
     train_losses_over_models = []
     val_losses_over_models = []
     for i in tqdm(range(num_models)):
       
-      train_losses, train_accs, val_losses, val_accs = train_model(WaveformClassifier, train_loader, val_loader,device, num_epochs=20)
+      train_losses, train_accs, val_losses, val_accs = train_model(WaveformClassifier, train_loader, val_loader,device, num_epochs=5)
       train_accs_over_models.append(train_accs)
       val_accs_over_models.append(val_accs)
       train_losses_over_models.append(train_losses)

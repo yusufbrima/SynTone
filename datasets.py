@@ -4,7 +4,7 @@ import torchaudio.transforms as T
 class WaveformDataset(Dataset):
     """PyTorch dataset for waveform data."""
     
-    def __init__(self, x, y):
+    def __init__(self, x, y, transform=None):
         """
         Args:
             x (ndarray): Waveform data
@@ -14,6 +14,7 @@ class WaveformDataset(Dataset):
         # Convert to PyTorch tensors
         self.x = torch.from_numpy(x).float() 
         self.y = torch.from_numpy(y).long()
+        self.transform = transform
         
     def __len__(self):
         """Returns length of dataset."""
@@ -31,6 +32,9 @@ class WaveformDataset(Dataset):
         
         # Get waveform and reshape to 1D
         x = self.x[idx]
+        if self.transform:
+            max_amplitude = torch.max(torch.abs(x))
+            x =  x / max_amplitude
         x = x.reshape(1, -1) 
         
         # Get label

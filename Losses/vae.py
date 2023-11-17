@@ -28,10 +28,14 @@ class BetaVAELoss(nn.Module):
         """
         
         # Reconstruction loss (MSE)
-        reconstruction_loss = F.mse_loss(recon_x, x, reduction='mean')
-        
+        reconstruction_loss = F.mse_loss(recon_x, x, reduction='sum')
+        # reconstruction_loss = F.l1_loss(recon_x, x, reduction='mean')
+
+        sample_dim = x.shape[-1]
+        kl_d_weight = 1 / sample_dim
         # KL divergence loss
-        kl_divergence_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        # kl_divergence_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        kl_divergence_loss =  torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim = 1), dim = 0)
         
         # Combine losses
         total_loss = reconstruction_loss + self.beta * kl_divergence_loss

@@ -3,8 +3,12 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs=20):
-  model = WaveformClassifier().to(device)
+def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs=5):
+  
+  # Get the input shape
+  x_batch, y_batch = next(iter(train_loader))
+  input_shape = x_batch.shape
+  model = WaveformClassifier( input_shape = input_shape).to(device)
   criterion = nn.CrossEntropyLoss().to(device)
   optimizer = optim.Adam(model.parameters(), lr=1e-3, amsgrad=True)
 
@@ -15,7 +19,6 @@ def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs
   val_accs = []
 
   # Train
-  num_epochs = 20
   for epoch in range(num_epochs):
 
     # Training loop
@@ -56,63 +59,13 @@ def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs
     val_accs.append(val_epoch_acc / len(val_loader))
 
     # Print metrics
-    # print(f'Epoch {epoch+1}/{num_epochs}.. ',
-    #       f'Train loss: {train_epoch_loss / len(train_loader):.4f}.. ',
-    #       f'Val loss: {val_epoch_loss / len(val_loader):.4f}.. ',
-    #       f'Val accuracy: {val_epoch_acc / len(val_loader):.4f}')
+    print(f'Epoch {epoch+1}/{num_epochs}.. ',
+          f'Train loss: {train_epoch_loss / len(train_loader):.4f}.. ',
+          f'Val loss: {val_epoch_loss / len(val_loader):.4f}.. ',
+          f'Val accuracy: {val_epoch_acc / len(val_loader):.4f}')
   return train_losses, train_accs, val_losses, val_accs
 
 
-# @title VAE Train Function
-
-# def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs, device):
-#     for epoch in range(num_epochs):
-#         vae.train()
-#         total_train_loss = 0
-
-#         # Training loop
-#         for x_batch, _ in train_loader:
-#             x_batch = x_batch.to(device)
-#             optimizer.zero_grad()
-
-#             # Forward pass
-#             recon_batch, z_mean, z_logvar = vae(x_batch)
-
-#             # Compute the training loss
-#             loss = loss_fn(recon_batch, x_batch, z_mean, z_logvar)
-
-#             # Backpropagation
-#             loss.backward()
-#             optimizer.step()
-
-#             total_train_loss += loss.item()
-
-#         # Calculate the average training loss for the epoch
-#         average_train_loss = total_train_loss / len(train_loader)
-
-#         # Validation loop
-#         vae.eval()
-#         total_val_loss = 0
-
-#         with torch.inference_mode():
-#             for x_batch, _ in val_loader:
-#                 x_batch = x_batch.to(device)
-
-#                 # Forward pass
-#                 recon_batch, z_mean, z_logvar = vae(x_batch)
-
-#                 # Compute the validation loss
-#                 loss = loss_fn(recon_batch, x_batch, z_mean, z_logvar)
-
-#                 total_val_loss += loss.item()
-
-#         # Calculate the average validation loss for the epoch
-#         average_val_loss = total_val_loss / len(val_loader)
-
-#         print(f"Epoch [{epoch + 1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
-
-#     # Save or use the trained VAE model for later inference
-#     torch.save(vae.state_dict(), './Exports/vae.pth')
 
 
 def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs, device):
@@ -168,6 +121,7 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
             
     print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
     # Save or use the trained VAE model for later inference
-  torch.save(vae.state_dict(), './Exports/vae.pth')
+    torch.save(vae.state_dict(), './Exports/vae.pth')
+
   return train_losses, val_losses
 
