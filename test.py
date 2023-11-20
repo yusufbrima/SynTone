@@ -1,73 +1,56 @@
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
+from torch.utils.data import DataLoader
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+import librosa
+from pathlib import Path
+from Models.vae import VAE2D,VAEDeep,VAEDeeper
+from datasets import SpectrogramDataset
+from utils import train_with_validation
+from Losses.vae import BetaVAELoss
+from tqdm import tqdm
 
-class CVAE(nn.Module):
+file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz")
 
-    def __init__(self, latent_dim):
-        super().__init__()
-
-        # Encoder
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=5, padding=2)
-        self.pool1 = nn.MaxPool2d(2)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
-        self.pool2 = nn.MaxPool2d(2)
-        
-        self.fc_enc1 = nn.Linear(32 * 128 * 43, 64)
-        self.fc_enc2_mean = nn.Linear(64, latent_dim)
-        self.fc_enc2_logvar = nn.Linear(64, latent_dim)
-
-        # Decoder
-        self.fc_dec1 = nn.Linear(latent_dim, 64)
-        self.fc_dec2 = nn.Linear(64, 32 * 128 * 44)
-        
-        self.deconv2 = nn.ConvTranspose2d(32, 32, kernel_size=3, padding=1)
-        self.deconv1 = nn.ConvTranspose2d(32, 1, kernel_size=6, padding=2)
-
-        self.neg_factor = 0.01
-
-    def encode(self, x):
-        # Encoding layers
-        x = F.leaky_relu(self.conv1(x), negative_slope=self.neg_factor)
-        x = self.pool1(x)
-        x = F.leaky_relu(self.conv2(x), negative_slope=self.neg_factor)
-        x = self.pool2(x)
-        x = torch.flatten(x, start_dim=1)
-        
-        x = F.leaky_relu(self.fc_enc1(x), negative_slope=self.neg_factor)
-        z_mean = self.fc_enc2_mean(x)
-        z_logvar = self.fc_enc2_logvar(x)
-        
-        return z_mean, z_logvar
-
-    def reparameterize(self, mean, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mean + eps * std 
-
-    def decode(self, z):
-        z = F.leaky_relu(self.fc_dec1(z), negative_slope=self.neg_factor)
-        z = F.leaky_relu(self.fc_dec2(z), negative_slope=self.neg_factor)
-
-        z = z.view(-1, 32, 128, 44)
-        z = F.leaky_relu(self.deconv2(z), negative_slope=self.neg_factor)
-        x_hat = torch.tanh(self.deconv1(z))
-        return x_hat
-
-    def forward(self, x):
-        z_mean, z_logvar = self.encode(x)
-        z = self.reparameterize(z_mean, z_logvar) 
-        x_hat = self.decode(z)
-        return x_hat, z_mean, z_logvar
+# set device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
 
-    # Generate random of size torch.Size([64, 1, 513, 173])
-    latent_dim = 64
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    X  = torch.randn(1, 1, 513, 173)
+    # Load data
+    data = np.load(file_path)
+    x = data['x']
+    y = data['y']
+    CLASSES = data['classes']
 
-    cvae = CVAE(latent_dim).to(device)
-    x_hat, z_mean, z_logvar = cvae(X.to(device))
+    # # Split data
+    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
 
-    print(x_hat.shape)
+    # Create datasets
+    train_dataset = SpectrogramDataset(x_train, y_train)
+    val_dataset = SpectrogramDataset(x_val, y_val)
+
+    # Create dataloaders
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64)
+    # Train 50 models
+    num_models = 1
+
+    latent_dim = 16
+    
+    # Get input shape 
+    x_batch,x_spec_batch, y_batch = next(iter(train_loader))
+    input_shape = x_spec_batch.shape
+
+    train_losses_over_models = []
+    val_losses_over_models = []
+    for i in tqdm(range(num_models)):
+      vae = VAEDeep(latent_dim, input_shape).to(device)
+      loss_fn = BetaVAELoss(beta = 4)
+      optimizer = optim.Adam(vae.parameters(), lr=0.001, betas = (0.9, 0.999))
+      train_losses, val_losses = train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs=200, device=device)
+      train_losses_over_models.append(train_losses)
+      val_losses_over_models.append(val_losses)

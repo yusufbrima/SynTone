@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import Dataset
-import torchaudio.transforms as T 
+import torchaudio.transforms as T
+import librosa
+import numpy as np 
 class WaveformDataset(Dataset):
     """PyTorch dataset for waveform data."""
     
@@ -46,26 +48,16 @@ class WaveformDataset(Dataset):
 class SpectrogramDataset(Dataset):
     """PyTorch dataset for audio waveforms and spectrograms."""
     
-    def __init__(self, waveforms, labels):
+    def __init__(self, waveforms, labels, sr =  16000):
         """
         Args:
             waveforms (ndarray): Audio waveform data 
             labels (ndarray): Corresponding labels
         """
-        self.x = torch.from_numpy(waveforms).float()
+        # self.x = torch.from_numpy(waveforms).float()
+        self.x = waveforms
         self.y = torch.from_numpy(labels).long()
-        
-        # Spectrogram transform
-        self.spectrogram = T.Spectrogram(n_fft=1024,
-                                          win_length=512,
-                                          center=True,
-                                          pad_mode="reflect",
-                                          power=2.0)
-                                          
-        # Inverse spectrogram transform 
-        self.griffinlim = T.GriffinLim(n_fft=1024, 
-                                       win_length=512,
-                                       n_iter=200)
+        self.sr = sr
         
     def __len__(self):
         """Returns length of dataset."""
@@ -82,11 +74,36 @@ class SpectrogramDataset(Dataset):
             spectrogram (Tensor): Corresponding spectrogram
             label (int): Class label
         """
-        waveform = self.x[idx].unsqueeze(0).float()
-        spec = self.spectrogram(waveform)
+        waveform = self.x[idx]
+        mel_spec = librosa.feature.melspectrogram(y=self.x[idx], sr=self.sr)
+        # mel_spec_db  = librosa.power_to_db(mel_spec, ref=np.max)
+        mel_spec_normalized = torch.from_numpy(librosa.util.normalize(mel_spec)).float().unsqueeze(0) 
         label = self.y[idx]
         
-        return waveform, spec, label
+        return waveform, mel_spec_normalized, label
+    
+    # create a static method to invert the spectrogram
+    @staticmethod
+    def invert_melspectrogram(spectrogram, sr = 16000):
+        """Inverts a spectrogram back to a waveform.
+        
+        Args:
+            spectrogram (Tensor): Spectrogram to invert
+            sr (int): Sampling rate
+        
+        Returns:
+            waveform (Tensor): Inverted waveform
+        """
+        # Convert to numpy array
+        spectrogram = spectrogram.squeeze(0).numpy()
+        
+        # Convert to power
+        # spectrogram = librosa.db_to_power(spectrogram)
+        
+        # Invert
+        waveform = librosa.feature.inverse.mel_to_audio(spectrogram, sr=sr, n_fft=2048, hop_length=512, n_iter=512)
+        
+        return waveform #torch.from_numpy(waveform).float()
 
 if __name__ == "__main__":
     pass

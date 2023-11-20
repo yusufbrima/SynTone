@@ -79,7 +79,7 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
     total_train_loss = 0
 
     # Training loop
-    for x_batch, _ in train_loader:
+    for x_waveform, x_batch, _ in train_loader:
       x_batch = x_batch.to(device)
       
       optimizer.zero_grad()
@@ -105,7 +105,7 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
     total_val_loss = 0
     
     with torch.inference_mode():
-      for x_batch, _ in val_loader:
+      for x_waveform, x_batch, _ in val_loader:
         x_batch = x_batch.to(device)
         
         # Forward pass
@@ -121,7 +121,7 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
             
     print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
     # Save or use the trained VAE model for later inference
-    torch.save(vae.state_dict(), './Exports/vae.pth')
+    torch.save(vae.state_dict(), './Exports/vae2deep.pth')
 
   return train_losses, val_losses
 
