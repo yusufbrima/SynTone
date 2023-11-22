@@ -121,7 +121,7 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
             
     print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
     # Save or use the trained VAE model for later inference
-    torch.save(vae.state_dict(), './Exports/vae2deep.pth')
+    torch.save(vae.state_dict(), './Exports/vae2deep_8_beta20.pth')
 
   return train_losses, val_losses
 
