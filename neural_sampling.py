@@ -87,7 +87,7 @@ if __name__ == "__main__":
     sr = 16000
     hop_length = 512
 
-    file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k_sine.npz")
+    file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset.npz")
 
     x, y, metadata, CLASSES = load_data(file_path)
     x_train, x_val, y_train, y_val = split_data(x, y)

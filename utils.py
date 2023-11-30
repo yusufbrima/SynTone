@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
+import numpy as np
+from pyitlib import discrete_random_variable as drv
 def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs=5):
   
   # Get the input shape
@@ -121,7 +122,30 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
             
     print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
     # Save or use the trained VAE model for later inference
-    torch.save(vae.state_dict(), './Exports/vae2deep_8_beta20.pth')
+    torch.save(vae.state_dict(), './Exports/vae2deeper_8_more.pth')
 
   return train_losses, val_losses
 
+def get_bin_index(x, nb_bins):
+    ''' Discretize input variable, adapted from https://github.com/ubisoft/ubisoft-laforge-disentanglement-metrics/blob/main/src/utils.py
+    
+    :param x:           input variable
+    :param nb_bins:     number of bins to use for discretization
+
+    '''
+    # get bins limits
+    bins = np.linspace(0, 1, nb_bins + 1)
+
+    # discretize input variable
+    return np.digitize(x, bins[:-1], right=False).astype(int)
+
+def get_mutual_information(x, y, normalize=True):
+    ''' Compute mutual information between two random variables, adapted from https://github.com/ubisoft/ubisoft-laforge-disentanglement-metrics/blob/main/src/utils.py
+    
+    :param x:      random variable
+    :param y:      random variable
+    '''
+    if normalize:
+        return drv.information_mutual_normalised(x, y, norm_factor='Y', cartesian_product=True)
+    else:
+        return drv.information_mutual(x, y, cartesian_product=True)
