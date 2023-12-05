@@ -3,7 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
+import math
+from tqdm import trange, tqdm
 from pyitlib import discrete_random_variable as drv
+
 def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs=5):
   
   # Get the input shape
@@ -122,7 +125,7 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
             
     print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
     # Save or use the trained VAE model for later inference
-    torch.save(vae.state_dict(), './Exports/vae2deeper_8_more.pth')
+    torch.save(vae.state_dict(), './Exports/betavae2deep_8.pth')
 
   return train_losses, val_losses
 
@@ -149,3 +152,72 @@ def get_mutual_information(x, y, normalize=True):
         return drv.information_mutual_normalised(x, y, norm_factor='Y', cartesian_product=True)
     else:
         return drv.information_mutual(x, y, cartesian_product=True)
+  
+
+
+def matrix_log_density_gaussian(x, mu, logvar):
+    """Calculates log density of a Gaussian for all combination of bacth pairs of
+    `x` and `mu`. I.e. return tensor of shape `(batch_size, batch_size, dim)`
+    instead of (batch_size, dim) in the usual log density.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+        Value at which to compute the density. Shape: (batch_size, dim).
+
+    mu: torch.Tensor
+        Mean. Shape: (batch_size, dim).
+
+    logvar: torch.Tensor
+        Log variance. Shape: (batch_size, dim).
+
+    batch_size: int
+        number of training images in the batch
+    """
+    batch_size, dim = x.shape
+    x = x.view(batch_size, 1, dim)
+    mu = mu.view(1, batch_size, dim)
+    logvar = logvar.view(1, batch_size, dim)
+    return log_density_gaussian(x, mu, logvar)
+
+
+def log_density_gaussian(x, mu, logvar):
+    """Calculates log density of a Gaussian.
+
+    Parameters
+    ----------
+    x: torch.Tensor or np.ndarray or float
+        Value at which to compute the density.
+
+    mu: torch.Tensor or np.ndarray or float
+        Mean.
+
+    logvar: torch.Tensor or np.ndarray or float
+        Log variance.
+    """
+    normalization = - 0.5 * (math.log(2 * math.pi) + logvar)
+    inv_var = torch.exp(-logvar)
+    log_density = normalization - 0.5 * ((x - mu)**2 * inv_var)
+    return log_density
+
+
+def log_importance_weight_matrix(batch_size, dataset_size):
+    """
+    Calculates a log importance weight matrix
+
+    Parameters
+    ----------
+    batch_size: int
+        number of training images in the batch
+
+    dataset_size: int
+    number of training images in the dataset
+    """
+    N = dataset_size
+    M = batch_size - 1
+    strat_weight = (N - M) / (N * M)
+    W = torch.Tensor(batch_size, batch_size).fill_(1 / M)
+    W.view(-1)[::M + 1] = 1 / N
+    W.view(-1)[1::M + 1] = strat_weight
+    W[M - 1, 0] = strat_weight
+    return W.log()

@@ -8,7 +8,7 @@ from pathlib import Path # For path manipulation
 
 # Custom model and loss modules
 from Models.vae import VAE,VAEDeep,VAEDeeper  
-from Losses.vae import BetaVAELoss
+from Losses.vae import BetaVAELoss,BTCVAELoss
 
 # Custom dataset and utility functions
 from datasets import SpectrogramDataset  
@@ -16,7 +16,7 @@ from utils import train_with_validation
 
 from tqdm import tqdm # For progress bar
 
-file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset.npz") 
+file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz") 
 
 # set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,13 +53,14 @@ if __name__ == "__main__":
     
     for i in tqdm(range(num_models)):
 
-        vae = VAEDeeper(latent_dim, input_shape).to(device) 
-        loss_fn = BetaVAELoss(beta = 4)  
+        vae = VAEDeep(latent_dim, input_shape).to(device) 
+        loss_fn = BetaVAELoss(beta = 4) 
+        # loss_fn = BTCVAELoss(beta = 4, gamma = 1, n_data=len(train_dataset)) 
         optimizer = optim.Adam(vae.parameters(), lr=0.001, betas = (0.9, 0.999))
         
         train_losses, val_losses = train_with_validation(
             vae, train_loader, val_loader, optimizer, loss_fn, 
-            num_epochs=20, device=device
+            num_epochs=50, device=device
         )
         
         train_losses_over_models.append(train_losses) 
