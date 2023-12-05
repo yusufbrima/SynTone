@@ -70,8 +70,6 @@ def train_model(WaveformClassifier, train_loader, val_loader, device, num_epochs
   return train_losses, train_accs, val_losses, val_accs
 
 
-
-
 def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs, device):
 
   train_losses = []
@@ -126,6 +124,68 @@ def train_with_validation(vae, train_loader, val_loader, optimizer, loss_fn, num
     print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
     # Save or use the trained VAE model for later inference
     torch.save(vae.state_dict(), './Exports/betavae2deep_8.pth')
+
+  return train_losses, val_losses
+
+def train_with_validation_general(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs, device,idx = 0, filename = "/Exports/betavae2deep_8.pth"):
+
+  train_losses = []
+  val_losses = []
+  
+  for epoch in range(num_epochs):
+
+    vae.train()  
+    total_train_loss = 0
+
+    # Training loop
+    for x_waveform, x_batch, _ in train_loader:
+      x_batch = x_batch.to(device)
+      # # Forward pass
+      # recon_batch, z_mean, z_logvar = vae(x_batch)
+      
+      # # Compute training loss
+      # loss = loss_fn(recon_batch, x_batch, z_mean, z_logvar)
+      if idx == 3:
+           loss = loss_fn(x_batch, vae, optimizer)
+      else:
+          # Forward pass
+          optimizer.zero_grad()
+          recon_batch, z_mean, z_logvar = vae(x_batch)
+          loss = loss_fn(recon_batch, x_batch, z_mean, z_logvar)
+          # Backpropagation
+          loss.backward()
+          optimizer.step()
+      
+      total_train_loss += loss.item()
+      
+    # Calculate average training loss    
+    average_train_loss = total_train_loss / len(train_loader)
+    train_losses.append(average_train_loss)
+
+    # Validation loop
+    vae.eval()
+    total_val_loss = 0
+    
+    with torch.inference_mode():
+      for x_waveform, x_batch, _ in val_loader:
+        x_batch = x_batch.to(device)
+        
+        # Compute validation loss
+        if idx == 3:
+           loss = loss_fn(x_batch, vae, optimizer)
+        else:
+          # Forward pass
+          recon_batch, z_mean, z_logvar = vae(x_batch)
+          loss = loss_fn(recon_batch, x_batch, z_mean, z_logvar)
+        total_val_loss += loss.item()
+        
+      # Calculate average validation loss
+      average_val_loss = total_val_loss / len(val_loader)
+      val_losses.append(average_val_loss)
+            
+    print(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {average_train_loss:.4f} - Validation Loss: {average_val_loss:.4f}")
+    # Save or use the trained VAE model for later inference
+    torch.save(vae.state_dict(), filename)
 
   return train_losses, val_losses
 
@@ -221,3 +281,63 @@ def log_importance_weight_matrix(batch_size, dataset_size):
     W.view(-1)[1::M + 1] = strat_weight
     W[M - 1, 0] = strat_weight
     return W.log()
+
+
+
+def get_activation_name(activation):
+    """Given a string or a `torch.nn.modules.activation` return the name of the activation."""
+    if isinstance(activation, str):
+        return activation
+
+    mapper = {nn.LeakyReLU: "leaky_relu", nn.ReLU: "relu", nn.Tanh: "tanh",
+              nn.Sigmoid: "sigmoid", nn.Softmax: "sigmoid"}
+    for k, v in mapper.items():
+        if isinstance(activation, k):
+            return k
+
+    raise ValueError("Unkown given activation type : {}".format(activation))
+
+
+def get_gain(activation):
+    """Given an object of `torch.nn.modules.activation` or an activation name
+    return the correct gain."""
+    if activation is None:
+        return 1
+
+    activation_name = get_activation_name(activation)
+
+    param = None if activation_name != "leaky_relu" else activation.negative_slope
+    gain = nn.init.calculate_gain(activation_name, param)
+
+    return gain
+
+
+def linear_init(layer, activation="relu"):
+    """Initialize a linear layer.
+    Args:
+        layer (nn.Linear): parameters to initialize.
+        activation (`torch.nn.modules.activation` or str, optional) activation that
+            will be used on the `layer`.
+    """
+    x = layer.weight
+
+    if activation is None:
+        return nn.init.xavier_uniform_(x)
+
+    activation_name = get_activation_name(activation)
+
+    if activation_name == "leaky_relu":
+        a = 0 if isinstance(activation, str) else activation.negative_slope
+        return nn.init.kaiming_uniform_(x, a=a, nonlinearity='leaky_relu')
+    elif activation_name == "relu":
+        return nn.init.kaiming_uniform_(x, nonlinearity='relu')
+    elif activation_name in ["sigmoid", "tanh"]:
+        return nn.init.xavier_uniform_(x, gain=get_gain(activation))
+
+
+def weights_init(module):
+    if isinstance(module, torch.nn.modules.conv._ConvNd):
+        # TO-DO: check litterature
+        linear_init(module)
+    elif isinstance(module, nn.Linear):
+        linear_init(module)

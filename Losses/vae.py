@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utils import (log_density_gaussian, log_importance_weight_matrix,
                                matrix_log_density_gaussian)
+from Models.discriminator import Discriminator
 
 class BetaVAELoss(nn.Module):
     """Custom loss function for VAE using MSE and KL divergence."""
@@ -139,3 +140,168 @@ def _get_log_pz_qz_prodzi_qzCx(latent_sample, latent_dist, n_data, is_mss=True):
     log_prod_qzi = torch.logsumexp(mat_log_qz, dim=1, keepdim=False).sum(1)
 
     return log_pz, log_qz, log_prod_qzi, log_q_zCx
+
+
+class FactorKLoss(nn.Module):
+    """
+    Factor-VAE loss implementation.
+
+    Parameters
+    ----------
+    device : torch.device
+        Device on which the model and loss computations should be performed.
+
+    gamma : float, optional
+        Weight of the TC loss term.
+
+    latent_dim : int, optional
+        Dimensionality of the latent space.
+
+    optim_kwargs : dict, optional
+        Additional arguments for the Adam optimizer.
+
+    References
+    ----------
+    [1] Kim, Hyunjik, and Andriy Mnih. "Disentangling by factorising."
+    arXiv preprint arXiv:1802.05983 (2018).
+    """
+
+    def __init__(self, device, gamma=10., latent_dim=10, optim_kwargs=dict(lr=5e-5, betas=(0.5, 0.9), t_max=10000)):
+        super().__init__()
+        self.gamma = gamma
+        self.device = device
+        self.latent_dim = latent_dim
+        self.discriminator = Discriminator(latent_dim=self.latent_dim).to(self.device)
+        self.optimizer_d = torch.optim.Adam(self.discriminator.parameters(), **optim_kwargs)
+
+    def _permute_dims(self, latent_sample):
+        """
+        Permutes dimensions of the latent sample.
+
+        Parameters
+        ----------
+        latent_sample : torch.Tensor
+            Latent sample from the reparameterization trick.
+
+        Returns
+        -------
+        torch.Tensor
+            Permuted latent sample.
+        """
+        perm = torch.zeros_like(latent_sample)
+        batch_size, dim_z = perm.size()
+
+        for z in range(dim_z):
+            pi = torch.randperm(batch_size).to(latent_sample.device)
+            perm[:, z] = latent_sample[pi, z]
+        
+        return perm
+
+    def _compute_vae_loss(self, data, model):
+        """
+        Compute the VAE loss.
+
+        Parameters
+        ----------
+        data : torch.Tensor
+            Input data.
+
+        model : torch.nn.Module
+            The VAE model.
+
+        Returns
+        -------
+        torch.Tensor
+            VAE loss.
+        """
+        recon_batch, mu, logvar = model(data)
+        latent_sample = model.reparameterize(mu, logvar)
+        rec_loss = F.mse_loss(recon_batch, data, reduction='sum')
+        kl_loss = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1), dim=0)
+
+        return rec_loss, kl_loss, latent_sample
+
+    def _compute_discriminator_loss(self, d_z, d_z_perm, half_batch_size):
+        """
+        Compute the discriminator loss.
+
+        Parameters
+        ----------
+        d_z : torch.Tensor
+            Output of the discriminator for the original latent sample.
+
+        d_z_perm : torch.Tensor
+            Output of the discriminator for the permuted latent sample.
+
+        half_batch_size : int
+            Half of the batch size.
+
+        Returns
+        -------
+        torch.Tensor
+            Discriminator loss.
+        """
+        ones = torch.ones(half_batch_size, dtype=torch.long, device=self.device)
+        zeros = torch.zeros_like(ones)
+        d_tc_loss = 0.5 * (F.cross_entropy(d_z, zeros) + F.cross_entropy(d_z_perm, ones))
+
+        return d_tc_loss
+
+    def forward(self, data, model, optimizer):
+        """
+        Compute and optimize the Factor-VAE loss.
+
+        Parameters
+        ----------
+        data : torch.Tensor
+            Input data.
+
+        model : torch.nn.Module
+            The VAE model.
+
+        optimizer : torch.optim
+            The optimizer for updating model parameters.
+
+        Returns
+        -------
+        torch.Tensor
+            Factor-VAE loss.
+        """
+        # Pre-processing steps
+        batch_size = data.size(dim=0)
+        half_batch_size = batch_size // 2
+        data = data.split(half_batch_size)
+        data1, data2 = data[0], data[1]
+
+        # VAE Loss Calculation
+        rec_loss, kl_loss, latent_sample1 = self._compute_vae_loss(data1, model)
+
+        d_z = self.discriminator(latent_sample1)
+        tc_loss = (d_z[:, 0] - d_z[:, 1]).mean()
+        anneal_reg = 1
+        vae_loss = rec_loss + kl_loss + anneal_reg * self.gamma * tc_loss
+
+        # Return loss if not training
+        if not model.training:
+            return vae_loss
+
+        # Backpropagation for VAE
+        optimizer.zero_grad()
+        vae_loss.backward(retain_graph=True)
+
+        # Discriminator Loss Calculation
+        latent_sample2 = model.sample_latent(data2)
+        z_perm = self._permute_dims(latent_sample2).detach()
+        d_z_perm = self.discriminator(z_perm)
+
+        d_tc_loss = self._compute_discriminator_loss(d_z, d_z_perm, half_batch_size)
+
+        # Backpropagation for Discriminator
+        self.optimizer_d.zero_grad()
+        d_tc_loss.backward()
+
+        # Update parameters
+        optimizer.step()
+        self.optimizer_d.step()
+
+        return vae_loss

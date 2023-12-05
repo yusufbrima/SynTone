@@ -8,11 +8,11 @@ from pathlib import Path # For path manipulation
 
 # Custom model and loss modules
 from Models.vae import VAE,VAEDeep,VAEDeeper  
-from Losses.vae import BetaVAELoss,BTCVAELoss
+from Losses.vae import BetaVAELoss,BTCVAELoss,FactorKLoss
 
 # Custom dataset and utility functions
 from datasets import SpectrogramDataset  
-from utils import train_with_validation  
+from utils import train_with_validation,train_with_validation_general 
 
 from tqdm import tqdm # For progress bar
 
@@ -35,33 +35,36 @@ if __name__ == "__main__":
     # Create datasets
     train_dataset = SpectrogramDataset(x_train, y_train)
     val_dataset = SpectrogramDataset(x_val, y_val)
-
-    # Create dataloader objects
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) 
-    val_loader = DataLoader(val_dataset, batch_size=64)
-    
-    # Train multiple models
-    num_models = 1
-    latent_dim = 8
-
-    # Get input shape from train data
-    _,x_spec_batch, _ = next(iter(train_loader))
-    input_shape = x_spec_batch.shape
     
     train_losses_over_models = []
     val_losses_over_models = []
-    
-    for i in tqdm(range(num_models)):
-
-        vae = VAEDeep(latent_dim, input_shape).to(device) 
-        loss_fn = BetaVAELoss(beta = 4) 
-        # loss_fn = BTCVAELoss(beta = 4, gamma = 1, n_data=len(train_dataset)) 
+    batch_size = 64
+    epochs = 20
+    latent_dim = 8
+    model_list = [f'./Exports/vae2deep_{latent_dim}.pth', f'./Exports/betavae2deep_{latent_dim}.pth',f'./Exports/btcvae2deep_{latent_dim}.pth', f'./Exports/factorvae2deep_{latent_dim}.pth' ]
+    loss_fn = [BetaVAELoss, BetaVAELoss, BTCVAELoss, FactorKLoss]
+    for i,  model in enumerate(model_list):
+        if i == 3: # FactorVAE
+            epochs *= 2
+            batch_size *= 2
+            # Create dataloader objects
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+        vae = VAEDeep(latent_dim, input_shape).to(device)
         optimizer = optim.Adam(vae.parameters(), lr=0.001, betas = (0.9, 0.999))
-        
-        train_losses, val_losses = train_with_validation(
-            vae, train_loader, val_loader, optimizer, loss_fn, 
-            num_epochs=50, device=device
-        )
-        
-        train_losses_over_models.append(train_losses) 
-        val_losses_over_models.append(val_losses)
+
+        if i == 0:
+            loss_fn = BetaVAELoss(beta = 1) # When beta = 1, it is equivalent to standard VAE
+        elif i == 1:
+            loss_fn = BetaVAELoss(beta = 4)
+        elif i == 2:
+            loss_fn = BTCVAELoss(beta = 4, gamma = 1, n_data=len(train_dataset))
+        else:
+            factor_G = 6
+            lr_disc = 5e-5
+            loss_fn = FactorKLoss(device=device, gamma=factor_G, latent_dim=latent_dim, optim_kwargs=dict(lr=lr_disc, betas=(0.5, 0.9)))
+        # Get input shape from train data
+        _,x_spec_batch, _ = next(iter(train_loader))
+        input_shape = x_spec_batch.shape
+
+        train_losses, val_losses = train_with_validation_general(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs=epochs, device=device, idx = i, filename = model_list[i])
