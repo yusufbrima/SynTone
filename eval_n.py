@@ -25,13 +25,71 @@ def compute_metrics(vae, dataloader, device):
     Returns:
     - metrics (dict): Dictionary containing disentanglement metrics.
     """
-    # ... (unchanged code)
+    z_list, y_list, frequency_list, amplitude_list = [], [], [], []
 
-def main(n_runs = 10):
-    # ... (unchanged code)
+    with torch.inference_mode():
+        for x_batch, x_spec_batch, y_batch, frequency_batch, amplitude_batch in dataloader:
+            x_spec_batch = x_spec_batch.to(device)
+            x_hat, z_mean, z_logvar = vae(x_spec_batch)
+            z = vae.reparameterize(z_mean, z_logvar)
+
+            # Append current batch of latent vectors to the list
+            z_list.append(z.cpu().detach().numpy())
+
+            # Append current batch of y, frequency, and amplitude to their respective lists
+            y_list.append(y_batch.cpu().detach().numpy())
+            frequency_list.append(frequency_batch.cpu().detach().numpy())
+            amplitude_list.append(amplitude_batch.cpu().detach().numpy())
+
+    # Convert lists to numpy arrays
+    v_factors = np.concatenate(z_list, axis=0)
+    all_labels = np.concatenate(y_list, axis=0)
+    all_frequency = np.concatenate(frequency_list, axis=0)
+    all_amplitude = np.concatenate(amplitude_list, axis=0)
+    z_factors = np.column_stack((all_labels, all_frequency, all_amplitude))
+
+    # Compute metrics
+    metrics = {
+        'mig': mig(v_factors, z_factors),
+        'jemmig': jemmig(v_factors, z_factors),
+        'dcimig': dcimig(v_factors, z_factors),
+        'modularity': modularity(v_factors, z_factors),
+        'sap': sap(v_factors, z_factors),
+    }
+
+    return metrics
+
+def main():
+    # File path for the dataset
+    file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz")
+
+    # Create DisentanglementDataset and DataLoader
+    dataset = DisentanglementDataset(file_path)
+    train_loader = DataLoader(dataset, batch_size=64, shuffle=True)
+
+    # Number of models and latent dimension
+    num_models = 1
+    latent_dim = 8
+
+    # Get a batch of data to determine input shape
+    _, x_spec_batch, _, _, _ = next(iter(train_loader))
+    input_shape = x_spec_batch.shape
+
+    # Sampling rate and hop length for librosa
+    sr = dataset.sr
+    hop_length = 512
+
+    # Random index for visualization
+    idx = np.random.randint(0, x_spec_batch.shape[0])
+
+    # Device (cuda if available, else cpu)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # List of model paths to evaluate
+    model_list = ['./Exports/vae2deep_8.pth', './Exports/betavae2deep_8.pth', './Exports/btcvae2deep_8.pth', './Exports/factorvae2deep_8.pth']
 
     # Number of experiments to run
-    num_experiments = n_runs # Change this to the desired number of experiments
+    num_experiments = 5  # Change this to the desired number of experiments
 
     # List to store computed metrics for each experiment
     history_list = []
