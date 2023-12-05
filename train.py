@@ -34,10 +34,10 @@ def main():
 
     # Common parameters
     batch_size = 64
-    epochs = 20
+    epochs = 50
     latent_dim = 8
-    model_list = [f'./Exports/vae2deep_{latent_dim}.pth', f'./Exports/betavae2deep_{latent_dim}.pth',
-                  f'./Exports/btcvae2deep_{latent_dim}.pth', f'./Exports/factorvae2deep_{latent_dim}.pth']
+    model_list = [f'./Exports/vae2deep_{latent_dim}_{epochs}.pth', f'./Exports/betavae2deep_{latent_dim}_{epochs}.pth',
+                  f'./Exports/btcvae2deep_{latent_dim}_{epochs}.pth', f'./Exports/factorvae2deep_{latent_dim}_{epochs}.pth']
 
     for i, model_path in enumerate(model_list):
         print(f"\nTraining Model {i}...")

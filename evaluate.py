@@ -86,10 +86,10 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # List of model paths to evaluate
-    model_list = ['./Exports/vae2deep_8.pth', './Exports/betavae2deep_8.pth', './Exports/btcvae2deep_8.pth']
+    model_list = ['./Exports/vae2deep_8.pth', './Exports/betavae2deep_8.pth', './Exports/btcvae2deep_8.pth','./Exports/factorvae2deep_8.pth']
 
     # Dictionary to store computed metrics
-    history = {'model': ['vae', 'betavae', 'btcvae'], 'mig': [], 'jemmig': [], 'dcimig': [], 'modularity': [], 'sap': []}
+    history = {'model': ['vae', 'betavae', 'btcvae','factorvae'], 'mig': [], 'jemmig': [], 'dcimig': [], 'modularity': [], 'sap': []}
 
     # Evaluate metrics for each model
     for model_path in model_list:
