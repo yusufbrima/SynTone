@@ -51,7 +51,8 @@ if __name__ == "__main__":
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
         
-        x_batch,x_spec_batch, y_batch = next(iter(train_loader))
+        # Get input shape from train data
+        _,x_spec_batch, _ = next(iter(train_loader))
         input_shape = x_spec_batch.shape
         
         vae = VAEDeep(latent_dim, input_shape).to(device)
@@ -67,8 +68,7 @@ if __name__ == "__main__":
             factor_G = 6
             lr_disc = 5e-5
             loss_fn = FactorKLoss(device=device, gamma=factor_G, latent_dim=latent_dim, optim_kwargs=dict(lr=lr_disc, betas=(0.5, 0.9)))
-        # Get input shape from train data
-        _,x_spec_batch, _ = next(iter(train_loader))
-        input_shape = x_spec_batch.shape
+
+        train_loader = tqdm(train_loader, desc=f'Training Model {i}', leave=False)
 
         train_losses, val_losses = train_with_validation_general(vae, train_loader, val_loader, optimizer, loss_fn, num_epochs=epochs, device=device, idx = i, filename = model_list[i])
