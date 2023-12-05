@@ -6,7 +6,12 @@ import torch
 from Models.vae import VAEDeep
 from datasets import DisentanglementDataset
 from torch.utils.data import DataLoader
-from utils import mig, jemmig, dcimig, modularity, sap
+from Metrics.mig import mig
+from Metrics.jemmig import jemmig
+from Metrics.dci import dci
+from Metrics.sap import sap
+from Metrics.dcimig import dcimig
+from Metrics.modularity import modularity
 
 def compute_metrics(vae, dataloader, device):
     """
