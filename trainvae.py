@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # Create datasets
     train_dataset = SpectrogramDataset(x_train, y_train)
     val_dataset = SpectrogramDataset(x_val, y_val)
-    
+
     train_losses_over_models = []
     val_losses_over_models = []
     batch_size = 64
@@ -50,6 +50,10 @@ if __name__ == "__main__":
             # Create dataloader objects
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) 
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
+        
+        x_batch,x_spec_batch, y_batch = next(iter(train_loader))
+        input_shape = x_spec_batch.shape
+        
         vae = VAEDeep(latent_dim, input_shape).to(device)
         optimizer = optim.Adam(vae.parameters(), lr=0.001, betas = (0.9, 0.999))
 
