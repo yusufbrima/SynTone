@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 def main():
     # File path for the dataset
-    file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz")
+    file_path = Path("./Datasets/my_dataset.npz")
 
     # Set device (cuda if available, else cpu)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

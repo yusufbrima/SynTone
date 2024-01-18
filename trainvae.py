@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split # Splitting data into train
 from pathlib import Path # For path manipulation
 
 # Custom model and loss modules
-from Models.vae import VAE,VAEDeep,VAEDeeper  
+from Models.vae import VAEDeep  
 from Losses.vae import BetaVAELoss,BTCVAELoss,FactorKLoss
 
 # Custom dataset and utility functions
