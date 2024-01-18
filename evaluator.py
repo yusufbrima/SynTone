@@ -107,7 +107,7 @@ def main(file_path, batch_size, num_experiments, latent_dim, model_list):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluate disentanglement metrics for VAE models.')
-    parser.add_argument('--file_path', type=str, default='/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SynTone/my_dataset.npz', help='Path to the dataset file')
+    parser.add_argument('--file_path', type=str, default="/path/to/dataset.npz", help='Path to the dataset file')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for data loading')
     parser.add_argument('--num_experiments', type=int, default=5, help='Number of experiments to run')
     parser.add_argument('--latent_dim', type=int, default=8, help='Latent dimension for the VAE models')
