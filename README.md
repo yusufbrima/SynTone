@@ -168,5 +168,3 @@ If you use this code or dataset in your research, please cite our paper as follo
 For any inquiries regarding the implementation or the paper, feel free to reach out to us at 
 <!-- [contact_email@example.com](mailto:contact_email@example.com). -->
 ```
-
-This enhanced README provides a more comprehensive and user-friendly guide for anyone interested in using your implementation for research or experimentation. It includes detailed instructions for installation, dataset creation, model training, evaluation, and a structured presentation of results.
