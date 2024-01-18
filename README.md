@@ -60,31 +60,6 @@ python eval.py --model /path/to/trained_model
 
 ## Results
 
-Provide a summary of your findings or link to a results file or directory.
-
-## License
-
-Specify the license under which your project is released.
-
-
-
-## Citation
-
-If you use this code in your research, please cite the paper:
-
-```
-@inproceedings{mypaper,
-  title={Learning Disentangled Audio Representations through Controlled Synthesis},
-  author={Authors},
-  booktitle={ICLR},
-  year={2024}
-}
-```
-
-## Contact
-
-Provide contact information for queries related to your research or implementation.
-
 ## Sample reconstruction 
 
 ![VAE Based reconstruction](Figures/Original_vs_Reconstructed.gif)
@@ -128,3 +103,26 @@ Provide contact information for queries related to your research or implementati
 
 ## BTCVAE Latent Space Transversal
 ![BTCVAE Encoding and Reconstruction](Figures/BTCVAE_Latent_Space_Interpolation.png)
+
+
+## License
+
+Specify the license under which your project is released.
+
+
+
+## Citation
+
+If you use this code in your research, please cite the paper:
+
+```
+@inproceedings{mypaper,
+  title={Learning Disentangled Audio Representations through Controlled Synthesis},
+  author={Authors},
+  booktitle={ICLR},
+  year={2024}
+}
+```
+
+## Contact
+

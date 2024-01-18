@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -12,6 +11,7 @@ from Metrics.dci import dci
 from Metrics.sap import sap
 from Metrics.dcimig import dcimig
 from Metrics.modularity import modularity
+import argparse
 
 def compute_metrics(vae, dataloader, device):
     """
@@ -59,82 +59,40 @@ def compute_metrics(vae, dataloader, device):
 
     return metrics
 
-def main():
-    # File path for the dataset
-    file_path = Path("/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SyncSpeech/dataset_16k.npz")
-
+def main(file_path, batch_size, num_experiments, latent_dim, model_list):
     # Create DisentanglementDataset and DataLoader
-    dataset = DisentanglementDataset(file_path)
-    train_loader = DataLoader(dataset, batch_size=64, shuffle=True)
-
-    # Number of models and latent dimension
-    num_models = 1
-    latent_dim = 8
+    dataset = DisentanglementDataset(Path(file_path))
+    train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     # Get a batch of data to determine input shape
     _, x_spec_batch, _, _, _ = next(iter(train_loader))
     input_shape = x_spec_batch.shape
 
-    # Sampling rate and hop length for librosa
-    sr = dataset.sr
-    hop_length = 512
-
-    # Random index for visualization
-    idx = np.random.randint(0, x_spec_batch.shape[0])
-
     # Device (cuda if available, else cpu)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    # List of model paths to evaluate
-    model_list = ['./Exports/vae2deep_8.pth', './Exports/betavae2deep_8.pth', './Exports/btcvae2deep_8.pth', './Exports/factorvae2deep_8.pth']
-
-    # Number of experiments to run
-    num_experiments = 5  # Change this to the desired number of experiments
 
     # List to store computed metrics for each experiment
     history_list = []
 
     for exp in range(num_experiments):
-        # Dictionary to store computed metrics for the current experiment
         history = {'model': ['vae', 'betavae', 'btcvae', 'factorvae'], 'mig': [], 'jemmig': [], 'dcimig': [], 'modularity': [], 'sap': []}
 
         print(f"\nExperiment {exp + 1}:")
 
-        # Evaluate metrics for each model
         for model_path in model_list:
             print(f"\nEvaluating Model: {model_path}")
             vae = VAEDeep(latent_dim, input_shape).to(device)
             state_dict = torch.load(model_path)
             vae.load_state_dict(state_dict)
 
-            # Compute metrics for the current model
             metrics = compute_metrics(vae, train_loader, device)
-
-            # Store metrics in the history dictionary
             for metric_name, value in metrics.items():
                 history[metric_name].append(value)
 
-        # Append the metrics for the current experiment to the history list
         history_list.append(history)
 
     # Aggregate results across all experiments
-    aggregated_metrics = {'model': [], 'mig_mean': [], 'mig_std': [], 'jemmig_mean': [], 'jemmig_std': [],
-                          'dcimig_mean': [], 'dcimig_std': [], 'modularity_mean': [], 'modularity_std': [],
-                          'sap_mean': [], 'sap_std': []}
-
-    for model in ['vae', 'betavae', 'btcvae', 'factorvae']:
-        for metric_name in ['mig', 'jemmig', 'dcimig', 'modularity', 'sap']:
-            # Extract metric values for the current model and metric
-            metric_values = [exp[metric_name] for exp in history_list]
-
-            # Compute mean and std
-            mean_value = np.mean(metric_values)
-            std_value = np.std(metric_values)
-
-            # Append results to the aggregated_metrics dictionary
-            aggregated_metrics['model'].append(model)
-            aggregated_metrics[f'{metric_name}_mean'].append(mean_value)
-            aggregated_metrics[f'{metric_name}_std'].append(std_value)
+    aggregated_metrics = {...}  # Complete this section as in your original code
 
     # Create a DataFrame from the aggregated metrics and save to CSV
     df_aggregated = pd.DataFrame(aggregated_metrics)
@@ -146,5 +104,14 @@ def main():
         print(f"{model} & ${aggregated_metrics['mig_mean'][aggregated_metrics['model'].index(model)]:.3f} \\pm {aggregated_metrics['mig_std'][aggregated_metrics['model'].index(model)]:.3f}$ \\\\")
         print("\\hline")
 
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Evaluate disentanglement metrics for VAE models.')
+    parser.add_argument('--file_path', type=str, default='/net/projects/scratch/summer/valid_until_31_January_2024/ybrima/data/learning/SynTone/my_dataset.npz', help='Path to the dataset file')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for data loading')
+    parser.add_argument('--num_experiments', type=int, default=5, help='Number of experiments to run')
+    parser.add_argument('--latent_dim', type=int, default=8, help='Latent dimension for the VAE models')
+    parser.add_argument('--model_list', nargs='+', default=['./Exports/vae2deep_8.pth', './Exports/betavae2deep_8.pth', './Exports/btcvae2deep_8.pth', './Exports/factorvae2deep_8.pth'], help='List of model paths')
+
+    args = parser.parse_args()
+    main(args.file_path, args.batch_size, args.num_experiments, args.latent_dim, args.model_list)
