@@ -74,6 +74,28 @@ python evaluator.py --file_path "/path/to/dataset.npz" --batch_size 128 --num_ex
 
 ## Results
 
+Certainly! You can incorporate this result table into the README's Results section, formatted in Markdown. Since Markdown doesn't natively support complex table formats or mathematical notations like LaTeX, I'll provide a description that integrates with the Markdown format and retains the key information from your table.
+
+---
+
+## Results
+
+### Disentanglement Metrics
+
+The following table presents the disentanglement metrics for different models over 10 evaluation runs each. The values are displayed as mean ± standard deviation. The metrics encompass various aspects: Compactness (MIG, SAP), Holistic (DCIMIG, JEMMIG), and Modularity Score.
+
+| Model        | MIG                | SAP               | DCIMIG            | JEMMIG           | Modularity Score |
+|--------------|-------------------|-------------------|-------------------|------------------|------------------|
+| Vanilla VAE  | **0.280 ± 0.0**   | **0.045 ± 0.000** | **0.005 ± 0.000** | 0.300 ± 0.0      | 0.651 ± 0.031    |
+| β-VAE        | 0.184 ± 0.0       | 0.035 ± 0.000     | 0.004 ± 0.000     | 0.201 ± 0.0      | 0.750 ± 0.022    |
+| Factor-VAE   | 0.118 ± 0.0       | 0.035 ± 0.000     | 0.003 ± 0.000     | **0.126 ± 0.0**  | **0.762 ± 0.014**|
+| β-TCVAE      | 0.166 ± 0.0       | 0.023 ± 0.000     | **0.005 ± 0.000** | 0.183 ± 0.0      | 0.747 ± 0.016    |
+
+*Note: The bold values indicate the best performance in each metric.*
+
+---
+
+
 This section showcases various visual representations of the results obtained from our experiments, including sample reconstructions, latent space traversal, and generative samples using different Variational Autoencoder (VAE) models.
 
 ### Sample Reconstruction 
