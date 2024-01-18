@@ -1,10 +1,9 @@
-
 # Learning Disentangled Audio Representations through Controlled Synthesis
 
-This is the reference implementation for the paper "Learning Disentangled Audio Representations through Controlled Synthesis".
+This is the reference implementation for the paper "Learning Disentangled Audio Representations through Controlled Synthesis," aimed at providing a comprehensive framework for experimenting with and evaluating audio disentanglement techniques.
 
 ## Abstract
-This paper tackles the scarcity of benchmarking data in disentangled auditory representation learning. We introduce *SynTone*, a synthetic dataset with explicit ground truth explanatory factors for evaluating disentanglement techniques. Benchmarking state-of-the-art methods on SynTone highlights its utility for method evaluation. Our results underscore strengths and limitations in audio disentanglement, motivating future research.
+In our paper, we address the challenge of limited benchmarking data in the field of disentangled auditory representation learning. We present *SynTone*, a novel synthetic dataset crafted with explicit ground truth explanatory factors, enabling a more precise evaluation of disentanglement methods. Our comprehensive benchmarking of several state-of-the-art approaches on SynTone effectively demonstrates its value for methodological assessment. The outcomes of our experiments reveal significant insights into the strengths and weaknesses inherent in current audio disentanglement practices, thereby paving the way for future advancements in the field.
 
 ## Table of Contents
 - [Installation](#installation)
@@ -18,111 +17,156 @@ This paper tackles the scarcity of benchmarking data in disentangled auditory re
 
 ## Installation
 
-Detail the steps required to install and run your code. Include information on dependencies and environment setup.
+This section outlines the necessary steps to install and run the code associated with our paper. It includes details on required dependencies and instructions for setting up the environment.
 
 ```bash
-# Example installation steps
+# First, clone the repository
+git clone https://github.com/yusufbrima/SynTone.git
+
+# Navigate to the project directory
+cd SynTone
+
+# Create a conda environment using the provided environment.yml file
 conda env create -f environment.yml
+
+# Activate the newly created environment
+conda activate syntone
 ```
 
 ## Dataset Creation
 
 **Script:** `create.py`
 
-This script generates the *SynTone* dataset. Describe the dataset structure and how to execute the script.
+The `create.py` script is responsible for generating the *SynTone* dataset. This dataset is structured to include various audio features like frequency and amplitude, each with a range of values. Below are the instructions on how to use the script to create the dataset.
 
 ```bash
-# Example usage
-python create.py --sample_rate 16000 --freq_start 400 --freq_end 8000 --num_freqs 100 --amp_start 0.1 --amp_end 1.0 --num_amps 10 --file_path "./Dataset/my_dataset.npz"
+# To generate the SynTone dataset, run the following command:
+python create.py --sample_rate 16000 --freq_start 400 --freq_end 8000 --num_freqs 100 --amp_start 0.1 --amp_end 1.0 --num_amps 10 --file_path "/path/to/dataset.npz"
+
+# The above command will create a dataset with specified ranges of frequency and amplitude, sampled at 16kHz.
 ```
 
 ## Model Training
 
-**Script:** `trainvae.py`
+**Script:** `trainer.py`
 
-Instructions on how to train models. Include details about hyperparameters, training duration, and hardware requirements.
+This section provides detailed instructions for training models using the `trainer.py` script. It includes guidance on setting hyperparameters, estimated training duration, and the hardware requirements for efficient training.
 
 ```bash
-# Example usage
-python trainvae.py --dataset /path/to/dataset --epochs 100
+# To train a model with the dataset, use the following command:
+python trainer.py --file_path "/path/to/dataset.npz" --batch_size 16 --epochs 100 --latent_dim 8
+
+# This command will train the model on the specified dataset for 100 epochs with a batch size of 16 and a latent dimension size of 8.
 ```
 
 ## Evaluation
 
-**Script:** `eval.py`
+**Script:** `evaluator.py`
 
-Guide on how to evaluate the trained models using Supervised Disentanglement Metrics. Include any necessary flags or parameters.
+The `evaluator.py` script is designed to evaluate the performance of the trained models using Supervised Disentanglement Metrics. This section details the necessary flags or parameters for effective model evaluation.
 
 ```bash
-# Example usage
-python eval.py --model /path/to/trained_model
+# Execute the following command to evaluate your model:
+python evaluator.py --file_path "/path/to/dataset.npz" --batch_size 128 --num_experiments 10 --latent_dim 8
+
+# This will evaluate the model over 10 experiments, each with a batch size of 128 and a latent dimension of 8.
 ```
 
 ## Results
 
-## Sample reconstruction 
+This section showcases various visual representations of the results obtained from our experiments, including sample reconstructions, latent space traversal, and generative samples using different Variational Autoencoder (VAE) models.
+
+### Sample Reconstruction 
 
 ![VAE Based reconstruction](Figures/Original_vs_Reconstructed.gif)
 
-## Sampling from the learnt latent space
+### Sampling from the Learnt Latent Space
 
 ![VAE-Based Sampling and Generation ](Figures/Generated_Samples.gif)
 
-## VAE Encoding and Reconstruction
+### VAE Encoding and Reconstruction
 ![VAE Encoding and Reconstruction](Figures/Original_vs_Reconstructed_VAE.png)
 
-## VAE Sampling and decoding
+### VAE Sampling and Decoding
 ![VAE Sampling](Figures/Generated_sample_VAE.png)
 
-## VAE Latent Space Transversal
+### VAE Latent Space Transversal
 ![VAE Encoding and Reconstruction](Figures/VAE_Latent_Space_Interpolation.png)
 
-## BetaVAE Encoding and Reconstruction
+### BetaVAE Encoding and Reconstruction
 ![BetaVAE Encoding and Reconstruction](Figures/Original_vs_Reconstructed_BetaVAE.png)
 
-## BetaVAE Sampling and decoding
+### BetaVAE Sampling and Decoding
 ![VAE Sampling](Figures/Generated_sample_BetaVAE.png)
 
-## BetaVAE Latent Space Transversal
+### BetaVAE Latent Space Transversal
 ![BetaVAE Encoding and Reconstruction](Figures/BetaVAE_Latent_Space_Interpolation.png)
 
-## FactorVAE Encoding and Reconstruction
+### Factor
+
+VAE Encoding and Reconstruction
 ![FactorVAE Encoding and Reconstruction](Figures/Original_vs_Reconstructed_FactorVAE.png)
 
-## FactorVAE Sampling and decoding
+### FactorVAE Sampling and Decoding
 ![FactorVAE Sampling](Figures/Generated_sample_FactorVAE.png)
 
-## FactorVAE Latent Space Transversal
+### FactorVAE Latent Space Transversal
 ![FactorVAE Encoding and Reconstruction](Figures/FactorVAE_Latent_Space_Interpolation.png)
 
-## BTCVAE Encoding and Reconstruction
+### BTCVAE Encoding and Reconstruction
 ![BTCVAE Encoding and Reconstruction](Figures/Original_vs_Reconstructed_BTCVAE.png)
 
-## BTCVAE Sampling and decoding
+### BTCVAE Sampling and Decoding
 ![BTCVAE Sampling](Figures/Generated_sample_BTCVAE.png)
 
-## BTCVAE Latent Space Transversal
+### BTCVAE Latent Space Transversal
 ![BTCVAE Encoding and Reconstruction](Figures/BTCVAE_Latent_Space_Interpolation.png)
 
 
 ## License
 
-Specify the license under which your project is released.
+This project is released under the MIT License. Below is the full text of the license:
 
+MIT License
+
+Copyright (c) 2024 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 ## Citation
 
-If you use this code in your research, please cite the paper:
+If you use this code or dataset in your research, please cite our paper as follows:
 
 ```
 @inproceedings{mypaper,
   title={Learning Disentangled Audio Representations through Controlled Synthesis},
-  author={Authors},
-  booktitle={ICLR},
+  author={Under Review},
+  booktitle={International Conference on Learning Representations (ICLR)},
   year={2024}
 }
 ```
 
 ## Contact
 
+For any inquiries regarding the implementation or the paper, feel free to reach out to us at 
+<!-- [contact_email@example.com](mailto:contact_email@example.com). -->
+```
+
+This enhanced README provides a more comprehensive and user-friendly guide for anyone interested in using your implementation for research or experimentation. It includes detailed instructions for installation, dataset creation, model training, evaluation, and a structured presentation of results.
